@@ -10,6 +10,7 @@ import sortByKeys from 'app/core/utils/sort_by_keys';
 // Types
 import { GridPos, panelAdded, PanelModel, panelRemoved } from './PanelModel';
 import { DashboardMigrator } from './DashboardMigrator';
+import { downgradeUnsupportedPanels } from './panelTypeCompat';
 import {
   AppEvent,
   dateTimeFormat,
@@ -123,6 +124,11 @@ export class DashboardModel {
     this.version = data.version || 0;
     this.links = data.links || [];
     this.gnetId = data.gnetId || null;
+    // Downgrade panel types this build's registry doesn't know (e.g. the 7.4+
+    // `timeseries` panel -> legacy `graph`) before building panel models, so
+    // snapshots from newer Grafana still render instead of failing plugin
+    // lookup. Runs unconditionally, regardless of schemaVersion.
+    downgradeUnsupportedPanels(data.panels);
     this.panels = _.map(data.panels || [], (panelData: any) => new PanelModel(panelData));
 
     this.resetOriginalVariables(true);
