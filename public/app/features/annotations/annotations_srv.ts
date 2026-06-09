@@ -89,6 +89,16 @@ export class AnnotationsSrv {
       promises.push(
         datasourcePromise
           .then((datasource: DataSourceApi) => {
+            // Snapshots exported from newer Grafana (7.4+, where the annotation
+            // system was refactored to AnnotationSupport on the datasource) may
+            // reference annotation datasources whose 7.1.5 API object no longer
+            // implements the legacy annotationQuery(). This viewer only ever
+            // *displays* captured snapshot data and never runs live queries, so
+            // treat such annotations as empty instead of throwing
+            // "datasource.annotationQuery is not a function".
+            if (typeof datasource.annotationQuery !== 'function') {
+              return [];
+            }
             // issue query against data source
             return datasource.annotationQuery({
               range,
